@@ -5,34 +5,37 @@
 #include <chrono>
 #include <algorithm>
 #include <sstream>
-#include "omp.h"
-using namespace std::chrono;
+#include <vector>
+#include <omp.h>
 
 using namespace std;
+using namespace std::chrono;
 
-typedef void (*encrytption_fun_type)(string &, string &, string &, string &,
-                                     string &, string &, vector<string> &);
+typedef void (*encryption_fun_type)(string&, string&, string&, string&,
+                                    string&, string&, vector<string>&);
 
-std::vector<std::string> splitString(const std::string &str) {
-    std::vector<std::string> tokens;
-
-    std::stringstream ss(str);
-    std::string token;
-    while (std::getline(ss, token, '\n')) {
+// Split string by newline character
+vector<string> splitString(const string& str) {
+    vector<string> tokens;
+    stringstream ss(str);
+    string token;
+    while (getline(ss, token, '\n')) {
         tokens.push_back(token);
     }
-
     return tokens;
 }
 
-char bitsToChar(string str) {
+// Convert string of bits to a character
+char bitsToChar(const string& str) {
     char parsed = 0;
-    for (int i = 0; i < 8; i++)
+    for (int i = 0; i < 8; ++i) {
         if (str[i] == '1')
             parsed |= 1 << (7 - i);
+    }
     return parsed;
 }
 
+// Convert integer to binary string
 string toBinary(int n) {
     string r;
     while (n != 0) {
@@ -42,54 +45,46 @@ string toBinary(int n) {
     return r;
 }
 
-string code(const string &text, const string &key) {
-    string ciphertext = string(8, ' ');
-
-    for (int i = 0; i < text.length(); i++) {
-        if (text[i] == '0')
-            if (key[i] == '0')
-                ciphertext[i] = '0';
-            else
-                ciphertext[i] = '1';
-        else if (key[i] == '0')
-            ciphertext[i] = '1';
-        else
-            ciphertext[i] = '0';
+// XOR encryption logic
+string code(const string& text, const string& key) {
+    string ciphertext(text.length(), ' ');
+    for (size_t i = 0; i < text.length(); ++i) {
+        ciphertext[i] = (text[i] == key[i]) ? '0' : '1';
     }
     return ciphertext;
 }
 
-string decode(const string &ciphertext, const string &key) {
+// Decode ciphertext using key
+string decode(const string& ciphertext, const string& key) {
     return code(ciphertext, key);
 }
 
-string change_Character_to_bits_string(char ch) {
+// Convert character to binary string
+string changeCharacterToBitsString(char ch) {
     return bitset<8>(ch).to_string();
 }
 
-void test(string fulltextAfterDecode, string fullText) {
-    fullText.erase(std::remove(fullText.begin(), fullText.end(), '\n'), fullText.cend());
-    if (fulltextAfterDecode == fullText)
+// Test encryption and decryption
+void test(const string& fulltextAfterDecode, const string& fullText) {
+    string cleanFullText = fullText;
+    cleanFullText.erase(remove(cleanFullText.begin(), cleanFullText.end(), '\n'), cleanFullText.cend());
+    if (fulltextAfterDecode == cleanFullText)
         cout << "Test Pass" << endl;
     else {
+
         cout << "Test Fail" << endl;
-
-//        for (int i = 0; i < 20; ++i) {
-//            for (int j = 0; j < i; ++j) {
-//                cout << "\t\t";
-//            }
-//            cout << "Test Fail" << endl;
-//        }
+        cout << fullText << endl << endl;
+        cout << fulltextAfterDecode << endl;
     }
 }
 
-
-void encryption_without_parallelizing(string &characterAsBits, string &fullText, string &key, string &fullKey,
-                                      string &ciphertext, string &fullCiphertext, vector<string> &fullTextAsArray) {
-    for (string line: fullTextAsArray) {
-        for (char ch: line) {
-            characterAsBits = change_Character_to_bits_string(ch);
-            key = toBinary((rand() % 128 + 128));
+// Encryption without parallelization
+void encryptionWithoutParallelizing(string& characterAsBits, string& fullText, string& key, string& fullKey,
+                                    string& ciphertext, string& fullCiphertext, vector<string>& fullTextAsArray) {
+    for (const auto& line : fullTextAsArray) {
+        for (char ch : line) {
+            characterAsBits = changeCharacterToBitsString(ch);
+            key = toBinary(rand() % 128 + 128);
             fullKey.append(key);
             ciphertext = code(characterAsBits, key);
             fullCiphertext.append(ciphertext);
@@ -97,85 +92,90 @@ void encryption_without_parallelizing(string &characterAsBits, string &fullText,
     }
 }
 
-void encryption_OpenMP(string &characterAsBits, string &fullText, string &key, string &fullKey,
-                       string &ciphertext, string &fullCiphertext, vector<string> &fullTextAsArray) {
-    #pragma omp parallel
-    for (string line: fullTextAsArray)
-    {
-        for (char ch: line) {
-            characterAsBits = change_Character_to_bits_string(ch);
-            key = toBinary((rand() % 128 + 128));
-            fullKey.append(key);
+// Encryption using OpenMP (commented as this code base does not include OpenMP setup)
+void encryptionOpenMP(string &characterAsBits, string &fullText, string &key, string &fullKey,
+                      string &ciphertext, string &fullCiphertext, vector<string> &fullTextAsArray) {
+    omp_set_num_threads(12);
+    vector<pair<int, string>> orderedCiphertext(fullTextAsArray.size());
+    vector<pair<int, string>> orderedKeys(fullTextAsArray.size());
+
+#pragma omp parallel for private(characterAsBits, key, ciphertext)
+    for (int i = 0; i < fullTextAsArray.size(); ++i) {
+        string localKey, localCiphertext;
+        unsigned int threadSeed = omp_get_thread_num() + time(NULL); // Unique seed per thread
+
+        for (char ch : fullTextAsArray[i]) {
+            characterAsBits = changeCharacterToBitsString(ch);
+            // Use thr2ead-safe random number generator with the thread-specific seed
+            key = toBinary(rand_r(&threadSeed) % 128 + 128);
+            localKey.append(key);
             ciphertext = code(characterAsBits, key);
-            fullCiphertext.append(ciphertext);
+            localCiphertext.append(ciphertext);
         }
+
+        orderedCiphertext[i] = make_pair(i, localCiphertext);
+        orderedKeys[i] = make_pair(i, localKey);
+    }
+
+    // Concatenate in correct order
+    for (int i = 0; i < fullTextAsArray.size(); ++i) {
+        fullCiphertext.append(orderedCiphertext[i].second);
+        fullKey.append(orderedKeys[i].second);
     }
 }
-
-void run_encryption(encrytption_fun_type fun, string &characterAsBits, string &fullText, string &key, string &fullKey,
-                    string &ciphertext,
-                    string &fulltextAfterDecode, string &textAfterDecode, string &fullCiphertext,
-                    vector<string> &fullTextAsArray) {//  szyfrowanie
+// Run encryption routine
+void runEncryption(encryption_fun_type fun, string& characterAsBits, string& fullText, string& key, string& fullKey,
+                   string& ciphertext, string& fulltextAfterDecode, string& textAfterDecode, string& fullCiphertext,
+                   vector<string>& fullTextAsArray, long& calculation_time) {
     auto start = high_resolution_clock::now();
 
-    fun(characterAsBits, fullText, key, fullKey, ciphertext, fullCiphertext,
-                                     fullTextAsArray);
+    fun(characterAsBits, fullText, key, fullKey, ciphertext, fullCiphertext, fullTextAsArray);
 
     auto stop = high_resolution_clock::now();
     auto duration = duration_cast<microseconds>(stop - start);
+    calculation_time = duration.count();
+    cout << "Time taken: " << calculation_time << " us" << endl;
 
-    cout << "Time taken: " << duration.count() << " us" << endl;
-
-//  deszyfrowanie
-
-    for (int i = 0; i < fullCiphertext.length(); i += 8) {
+    // Decryption process
+    for (size_t i = 0; i < fullCiphertext.length(); i += 8) {
         textAfterDecode = decode(fullCiphertext.substr(i, 8), fullKey.substr(i, 8));
         fulltextAfterDecode += bitsToChar(textAfterDecode);
     }
 
     test(fulltextAfterDecode, fullText);
-    fullKey = "";
-    fulltextAfterDecode = "";
-    fullCiphertext = "";
+    fullKey.clear();
+    fulltextAfterDecode.clear();
+    fullCiphertext.clear();
 }
-int main(int argc, char *argv[]) {
-    omp_set_num_threads(16);
 
-    string characterAsBits;
-    string fullText;
-    string key;
-    string fullKey;
-    string ciphertext;
-    string textAfterCode;
-    string fulltextAfterDecode;
-    string textAfterDecode;
-    string fullCiphertext;
+// Main function
+int main() {
+    string characterAsBits, fullText, key, fullKey, ciphertext, textAfterDecode, fulltextAfterDecode, fullCiphertext;
     srand(time(nullptr));
 
-    string nameOfFile = "alice.txt";
-
-    ifstream myReadFile("" + nameOfFile);
+    ifstream myReadFile("bible.txt");
     if (myReadFile.fail()) {
-        cout << "My error: not proper file opening" << endl;
+        cout << "Error: File could not be opened" << endl;
         exit(1);
     }
-    std::stringstream buffer;
+
+    stringstream buffer;
     buffer << myReadFile.rdbuf();
     fullText = buffer.str();
     vector<string> fullTextAsArray = splitString(fullText);
 
+    long calculation_time;
 
-    encrytption_fun_type ptr;
+    encryption_fun_type ptr = encryptionWithoutParallelizing;
+    runEncryption(ptr, characterAsBits, fullText, key, fullKey, ciphertext, fulltextAfterDecode, textAfterDecode, fullCiphertext, fullTextAsArray,calculation_time);
 
-    ptr = encryption_without_parallelizing;
-    run_encryption(ptr, characterAsBits, fullText, key, fullKey, ciphertext, fulltextAfterDecode, textAfterDecode,
-                   fullCiphertext,
-                   fullTextAsArray);
+    long calculation_time_without_parallelizing = calculation_time;
 
+    ptr = encryptionOpenMP;
+    runEncryption(ptr, characterAsBits, fullText, key, fullKey, ciphertext, fulltextAfterDecode, textAfterDecode, fullCiphertext, fullTextAsArray,calculation_time);
 
-    ptr = encryption_OpenMP;
-    run_encryption(ptr, characterAsBits, fullText, key, fullKey, ciphertext, fulltextAfterDecode, textAfterDecode,
-                   fullCiphertext,
-                   fullTextAsArray);
+    calculation_time += 0.0;
+
+    cout << (double)calculation_time_without_parallelizing/calculation_time <<endl;
     return 0;
 }
