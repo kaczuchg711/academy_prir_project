@@ -14,7 +14,6 @@ using namespace std::chrono;
 typedef void (*encryption_fun_type)(string&, string&, string&,
                                     string&, string&, vector<string>&);
 
-
 // Split string by newline character
 vector<string> splitString(const string& str) {
     vector<string> tokens;
@@ -116,10 +115,10 @@ void test(const string& fulltextAfterDecode, const string& fullText) {
     cleanFullTextAfterDecode.erase(remove(cleanFullTextAfterDecode.begin(), cleanFullTextAfterDecode.end(), '\n'), cleanFullTextAfterDecode.cend());
 
     if (cleanFullTextAfterDecode == cleanFullText) {
-        cout << "Test Pass" << endl;
+        cout << "Test result: Pass" << endl;
     } else {
-        cout << "Test Fail" << endl;
-        cout << fullText << endl << endl;
+        cout << "Test result: Fail" << endl;
+        cout << cleanFullText << endl << endl;
         cout << cleanFullTextAfterDecode << endl;
     }
 }
@@ -166,45 +165,52 @@ int main(int argc, char** argv) {
 
     MPI_Status status;
     MPI_Init(&argc, &argv);
-    MPI_Comm_rank( MPI_COMM_WORLD, &rank );
-    MPI_Comm_size( MPI_COMM_WORLD, &size );
+    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+    MPI_Comm_size(MPI_COMM_WORLD, &size);
 
-    // Check if there are at least 4 processes
-    if (size < 3) {
-        std::cerr << "This program must be run with at least 4 processes.\n";
+    // Check if there are at least 2 processes
+    if (size < 2) {
+        std::cerr << "This program must be run with at least 2 processes.\n";
         MPI_Abort(MPI_COMM_WORLD, EXIT_FAILURE);
     }
     
     if (rank == 0) {
-        vector<string> fullTextAsArray = readFileAndSplitIntoLines("short.txt");
-        vector<vector<string>> split_vec = split_vector(fullTextAsArray, size - 2);
+        vector<string> fullTextAsArray = readFileAndSplitIntoLines(argv[1]);
+        vector<vector<string>> split_vec = split_vector(fullTextAsArray, size);
 
         string concatenatedStrings;
         size_t numElements;
 
+        // Start the clock and send start value to the last process
         auto start = high_resolution_clock::now();
+        MPI_Send(&start, sizeof(start), MPI_BYTE, size - 1, 2, MPI_COMM_WORLD);
 
-        for (int i = 1; i < size - 1; i++) {
+        // Vectors concatenation and sending to the all processes except process number 0
+        for (int i = 1; i < size; i++) {
             concatenatedStrings = "";
 
-            for (const auto& str : split_vec[i-1]) {
+            for (const auto& str : split_vec[i]) {
                 concatenatedStrings += str + '\n';
             }
 
             numElements = concatenatedStrings.size();
-            cout << "Number of elements for the process " << i << ": " << numElements << endl;
-
             MPI_Send(concatenatedStrings.c_str(), numElements + 1, MPI_CHAR, i, 0, MPI_COMM_WORLD);
         }
 
-        MPI_Send(&start, sizeof(start), MPI_BYTE, size - 1, 2, MPI_COMM_WORLD);
+        // First vector encryption and sending the result to the last process
+        ptr = encryptionWithoutParallelizing;
+        string textAfterOperation = runEncryption(ptr, characterAsBits, key, fullKey, ciphertext, fulltextAfterDecode, textAfterDecode, fullCiphertext, split_vec[0]);
+
+        MPI_Send(textAfterOperation.c_str(), textAfterOperation.size() + 1, MPI_CHAR, size - 1, 1, MPI_COMM_WORLD);
     } else if (rank == size - 1) {
+        // Receive the clock start value
         high_resolution_clock::time_point start;
         MPI_Recv(&start, sizeof(start), MPI_BYTE, 0, 2, MPI_COMM_WORLD, &status);
 
-        fullText = readTextFile("short.txt");
-        cout << "\nFinall process:" << endl;
+        // Read full text file content
+        fullText = readTextFile(argv[1]);
 
+        // Receive the text data from the other processes
         for (int i = 1; i < size - 1; i++) {
             char buffer[1000000];
             MPI_Recv(&buffer, 1000000, MPI_CHAR, i, 1, MPI_COMM_WORLD, &status);
@@ -212,24 +218,42 @@ int main(int argc, char** argv) {
             finalText += buffer;
         }
 
-        auto stop = high_resolution_clock::now();
-        auto duration = duration_cast<microseconds>(stop - start);
-        calculation_time = duration.count();
-
-        cout << "Time taken: " << calculation_time << " us" << endl;
-
-        test(finalText, fullText);
-    } else {
-        ptr = encryptionWithoutParallelizing;
-
+        // Receive the not encrypted text data from the process 0 and do the encryption
         char buffer[1000000];
         MPI_Recv(&buffer, 1000000, MPI_CHAR, 0, 0, MPI_COMM_WORLD, &status);
 
         string receivedString(buffer);
         vector<string> receivedVector = splitString(receivedString);
 
+        ptr = encryptionWithoutParallelizing;
+        string textAfterOperation = runEncryption(ptr, characterAsBits, key, fullKey, ciphertext, fulltextAfterDecode, textAfterDecode, fullCiphertext, receivedVector);
+        finalText += textAfterOperation;
+
+        // Receive text data after encryption from the process 0
+        MPI_Recv(&buffer, 1000000, MPI_CHAR, 0, 1, MPI_COMM_WORLD, &status);
+        finalText = buffer + finalText;
+
+        // Stop the clock and calculate the duration time
+        auto stop = high_resolution_clock::now();
+        auto duration = duration_cast<microseconds>(stop - start);
+        calculation_time = duration.count();
+        cout << "Time taken: " << calculation_time << " us" << endl;
+
+        // Test if the text before and after encryption and decryption are the same
+        test(finalText, fullText);
+    } else {
+        // Receive the text data from the process 0
+        char buffer[1000000];
+        MPI_Recv(&buffer, 1000000, MPI_CHAR, 0, 0, MPI_COMM_WORLD, &status);
+
+        // Perform encryption and decryption
+        string receivedString(buffer);
+        vector<string> receivedVector = splitString(receivedString);
+
+        ptr = encryptionWithoutParallelizing;
         string textAfterOperation = runEncryption(ptr, characterAsBits, key, fullKey, ciphertext, fulltextAfterDecode, textAfterDecode, fullCiphertext, receivedVector);
 
+        // Send the text data after operations to the last process
         MPI_Send(textAfterOperation.c_str(), textAfterOperation.size() + 1, MPI_CHAR, size - 1, 1, MPI_COMM_WORLD);
     }
 

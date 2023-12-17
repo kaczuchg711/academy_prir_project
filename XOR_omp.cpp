@@ -14,7 +14,6 @@ using namespace std::chrono;
 typedef void (*encryption_fun_type)(string&, string&, string&, string&,
                                     string&, string&, vector<string>&);
 
-
 // Split string by newline character
 vector<string> splitString(const string& str) {
     vector<string> tokens;
@@ -91,10 +90,10 @@ void test(const string& fulltextAfterDecode, const string& fullText) {
     string cleanFullText = fullText;
     cleanFullText.erase(remove(cleanFullText.begin(), cleanFullText.end(), '\n'), cleanFullText.cend());
     if (fulltextAfterDecode == cleanFullText)
-        cout << "Test Pass" << endl;
+        cout << "Test result: Pass" << endl;
     else {
 
-        cout << "Test Fail" << endl;
+        cout << "Test result: Fail" << endl;
         cout << fullText << endl << endl;
         cout << fulltextAfterDecode << endl;
     }
@@ -158,14 +157,14 @@ void runEncryption(encryption_fun_type fun, string& characterAsBits, string& ful
 }
 
 // Main function
-int main() {
+int main(int argc, char** argv) {
     string characterAsBits, fullText, key, fullKey, ciphertext, textAfterDecode, fulltextAfterDecode, fullCiphertext;
     encryption_fun_type ptr;
     long calculation_time;
     srand(time(nullptr));
 
-    fullText = readTextFile("lalka.txt");
-    vector<string> fullTextAsArray = readFileAndSplitIntoLines("lalka.txt");
+    fullText = readTextFile(argv[1]);
+    vector<string> fullTextAsArray = readFileAndSplitIntoLines(argv[1]);
 
     ptr = encryptionOpenMP;
     runEncryption(ptr, characterAsBits, fullText, key, fullKey, ciphertext, fulltextAfterDecode, textAfterDecode, fullCiphertext, fullTextAsArray, calculation_time);
