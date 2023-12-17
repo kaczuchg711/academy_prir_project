@@ -44,15 +44,6 @@ string readTextFile(const string& filePath) {
 // Select the text file, read it and split into lines vector
 vector<string> readFileAndSplitIntoLines(const string& filePath) {
     string fullText = readTextFile(filePath);
-    // ifstream myReadFile(filePath);
-    // if (myReadFile.fail()) {
-    //     cout << "Error while opening the file - check if the filepath is correct" << endl;
-    //     exit(1);
-    // }
-
-    // stringstream buffer;
-    // buffer << myReadFile.rdbuf();
-    // fullText = buffer.str();
     return splitString(fullText);
 }
 
@@ -151,14 +142,8 @@ void encryptionWithoutParallelizing(string& characterAsBits, string& key, string
 string runEncryption(encryption_fun_type fun, string& characterAsBits, string& key, string& fullKey,
                    string& ciphertext, string& fulltextAfterDecode, string& textAfterDecode, string& fullCiphertext,
                    vector<string>& fullTextAsArray) {
-    // auto start = high_resolution_clock::now();
 
     fun(characterAsBits, key, fullKey, ciphertext, fullCiphertext, fullTextAsArray);
-
-    // auto stop = high_resolution_clock::now();
-    // auto duration = duration_cast<microseconds>(stop - start);
-    // calculation_time = duration.count();
-    // cout << "Time taken: " << calculation_time << " us" << endl;
 
     // Decryption process
     for (size_t i = 0; i < fullCiphertext.length(); i += 8) {
@@ -176,12 +161,19 @@ int main(int argc, char** argv) {
     int rank, size;
     string characterAsBits, fullText, key, fullKey, ciphertext, textAfterDecode, fulltextAfterDecode, fullCiphertext, finalText;
     encryption_fun_type ptr;
+    long calculation_time;
     srand(time(nullptr));
 
     MPI_Status status;
     MPI_Init(&argc, &argv);
     MPI_Comm_rank( MPI_COMM_WORLD, &rank );
     MPI_Comm_size( MPI_COMM_WORLD, &size );
+
+    // Check if there are at least 4 processes
+    if (size < 3) {
+        std::cerr << "This program must be run with at least 4 processes.\n";
+        MPI_Abort(MPI_COMM_WORLD, EXIT_FAILURE);
+    }
     
     if (rank == 0) {
         vector<string> fullTextAsArray = readFileAndSplitIntoLines("short.txt");
@@ -189,6 +181,8 @@ int main(int argc, char** argv) {
 
         string concatenatedStrings;
         size_t numElements;
+
+        auto start = high_resolution_clock::now();
 
         for (int i = 1; i < size - 1; i++) {
             concatenatedStrings = "";
@@ -202,7 +196,12 @@ int main(int argc, char** argv) {
 
             MPI_Send(concatenatedStrings.c_str(), numElements + 1, MPI_CHAR, i, 0, MPI_COMM_WORLD);
         }
+
+        MPI_Send(&start, sizeof(start), MPI_BYTE, size - 1, 2, MPI_COMM_WORLD);
     } else if (rank == size - 1) {
+        high_resolution_clock::time_point start;
+        MPI_Recv(&start, sizeof(start), MPI_BYTE, 0, 2, MPI_COMM_WORLD, &status);
+
         fullText = readTextFile("short.txt");
         cout << "\nFinall process:" << endl;
 
@@ -212,6 +211,12 @@ int main(int argc, char** argv) {
 
             finalText += buffer;
         }
+
+        auto stop = high_resolution_clock::now();
+        auto duration = duration_cast<microseconds>(stop - start);
+        calculation_time = duration.count();
+
+        cout << "Time taken: " << calculation_time << " us" << endl;
 
         test(finalText, fullText);
     } else {
@@ -223,17 +228,7 @@ int main(int argc, char** argv) {
         string receivedString(buffer);
         vector<string> receivedVector = splitString(receivedString);
 
-        // cout << "\nProcess " << rank << " received:" << endl;
-
-        // for (const auto& str : receivedVector) {
-        //     cout << str << " ";
-        // }
-        // cout << endl;
-
         string textAfterOperation = runEncryption(ptr, characterAsBits, key, fullKey, ciphertext, fulltextAfterDecode, textAfterDecode, fullCiphertext, receivedVector);
-
-        // cout << "\nProcess " << rank << " returned after operations:" << endl;
-        // cout << textAfterOperation << endl;
 
         MPI_Send(textAfterOperation.c_str(), textAfterOperation.size() + 1, MPI_CHAR, size - 1, 1, MPI_COMM_WORLD);
     }
