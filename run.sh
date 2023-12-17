@@ -16,10 +16,15 @@ g++ XOR_sequential.cpp -o XOR_sequential
 
 # Compile and run the OpenMP version
 echo "\nRunning XOR - OpenMP approach:"
-g++ XOR_omp.cpp -fopenmp -o XOR_omp
+g++ -fopenmp XOR_omp.cpp -o XOR_omp
 ./XOR_omp "$TEXT_FILE"
 
 # Compile and run the MPI version
 echo "\nRunning XOR - MPI approach:"
 mpic++ XOR_mpi.cpp -o XOR_mpi
 mpirun -np 8 ./XOR_mpi "$TEXT_FILE"
+
+# Compile and run the hybrid version
+echo "\nRunning XOR - hybrid approach:"
+mpic++ -fopenmp XOR_hybrid.cpp -o XOR_hybrid
+mpirun -np 8 ./XOR_hybrid "$TEXT_FILE"
