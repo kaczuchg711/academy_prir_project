@@ -127,13 +127,13 @@ void test(const string& fulltextAfterDecode, const string& fullText) {
 // Encryption using OpenMP (commented as this code base does not include OpenMP setup)
 void encryptionOpenMP(string &characterAsBits, string &key, string &fullKey,
                       string &ciphertext, string &fullCiphertext, vector<string> &fullTextAsArray) {
-    omp_set_num_threads(4);
     vector<pair<int, string>> orderedCiphertext(fullTextAsArray.size());
     vector<pair<int, string>> orderedKeys(fullTextAsArray.size());
 
 #pragma omp parallel for private(characterAsBits, key, ciphertext)
     for (int i = 0; i < fullTextAsArray.size(); ++i) {
         string localKey, localCiphertext;
+
         unsigned int threadSeed = omp_get_thread_num() + time(NULL); // Unique seed per thread
 
         for (char ch : fullTextAsArray[i]) {
@@ -192,6 +192,9 @@ int main(int argc, char** argv) {
         std::cerr << "This program must be run with at least 2 processes.\n";
         MPI_Abort(MPI_COMM_WORLD, EXIT_FAILURE);
     }
+
+    int number_of_threads = atoi(argv[2]);
+    omp_set_num_threads(number_of_threads);
     
     if (rank == 0) {
         vector<string> fullTextAsArray = readFileAndSplitIntoLines(argv[1]);
@@ -256,7 +259,7 @@ int main(int argc, char** argv) {
         auto stop = high_resolution_clock::now();
         auto duration = duration_cast<microseconds>(stop - start);
         calculation_time = duration.count();
-        cout << "Time taken: " << calculation_time << " us" << endl;
+        cout << "Time taken: " << calculation_time/1000. << " ms" << endl;
 
         // Test if the text before and after encryption and decryption are the same
         test(finalText, fullText);

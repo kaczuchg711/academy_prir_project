@@ -1,30 +1,32 @@
 #!/bin/bash
 
 # Check if a file name is provided as an argument
-if [ "$#" -ne 1 ]; then
-    echo "Usage: $0 <text_file_name>"
+if [ "$#" -ne 3 ]; then
+    echo "Usage: $0 <text_file_name> <number_of_process> <number_of_threads>"
     exit 1
 fi
 
 # Assign the first argument to a variable
 TEXT_FILE="$1"
+NUMBER_OF_PROCESS="$2"
+NUMBER_OF_THREADS="$3"
 
-# Compile and run the sequential version
+#Compile and run the sequential version
 echo "Running XOR - sequential approach:"
 g++ XOR_sequential.cpp -o XOR_sequential
 ./XOR_sequential "$TEXT_FILE"
-
+echo
 # Compile and run the OpenMP version
-echo "\nRunning XOR - OpenMP approach:"
+echo "Running XOR - OpenMP approach:"
 g++ -fopenmp XOR_omp.cpp -o XOR_omp
-./XOR_omp "$TEXT_FILE"
-
+./XOR_omp "$TEXT_FILE" "$NUMBER_OF_THREADS"
+echo
 # Compile and run the MPI version
-echo "\nRunning XOR - MPI approach:"
+echo "Running XOR - MPI approach:"
 mpic++ XOR_mpi.cpp -o XOR_mpi
-mpirun -np 8 ./XOR_mpi "$TEXT_FILE"
-
+mpirun -np "$NUMBER_OF_PROCESS" ./XOR_mpi "$TEXT_FILE"
+echo
 # Compile and run the hybrid version
-echo "\nRunning XOR - hybrid approach:"
+echo "Running XOR - hybrid approach:"
 mpic++ -fopenmp XOR_hybrid.cpp -o XOR_hybrid
-mpirun -np 8 ./XOR_hybrid "$TEXT_FILE"
+mpirun -np "$NUMBER_OF_PROCESS" ./XOR_hybrid "$TEXT_FILE" "$NUMBER_OF_THREADS"

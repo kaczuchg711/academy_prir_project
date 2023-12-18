@@ -1,6 +1,9 @@
 .idea
 *.o
 main
+XOR_mpi
+XOR_omp
+XOR_hybrid
 cmake-build-debug
 *.out
 .vscode

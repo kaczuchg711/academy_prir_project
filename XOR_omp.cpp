@@ -102,10 +102,9 @@ void test(const string& fulltextAfterDecode, const string& fullText) {
 // Encryption using OpenMP (commented as this code base does not include OpenMP setup)
 void encryptionOpenMP(string &characterAsBits, string &fullText, string &key, string &fullKey,
                       string &ciphertext, string &fullCiphertext, vector<string> &fullTextAsArray) {
-    omp_set_num_threads(12);
+
     vector<pair<int, string>> orderedCiphertext(fullTextAsArray.size());
     vector<pair<int, string>> orderedKeys(fullTextAsArray.size());
-
 #pragma omp parallel for private(characterAsBits, key, ciphertext)
     for (int i = 0; i < fullTextAsArray.size(); ++i) {
         string localKey, localCiphertext;
@@ -142,7 +141,7 @@ void runEncryption(encryption_fun_type fun, string& characterAsBits, string& ful
     auto stop = high_resolution_clock::now();
     auto duration = duration_cast<microseconds>(stop - start);
     calculation_time = duration.count();
-    cout << "Time taken: " << calculation_time << " us" << endl;
+    cout << "Time taken: " << calculation_time/1000. << " ms" << endl;
 
     // Decryption process
     for (size_t i = 0; i < fullCiphertext.length(); i += 8) {
@@ -166,8 +165,10 @@ int main(int argc, char** argv) {
     fullText = readTextFile(argv[1]);
     vector<string> fullTextAsArray = readFileAndSplitIntoLines(argv[1]);
 
+    int number_of_threads = atoi(argv[2]);
+    omp_set_num_threads(number_of_threads);
+
     ptr = encryptionOpenMP;
     runEncryption(ptr, characterAsBits, fullText, key, fullKey, ciphertext, fulltextAfterDecode, textAfterDecode, fullCiphertext, fullTextAsArray, calculation_time);
-
     return 0;
 }

@@ -237,7 +237,7 @@ int main(int argc, char** argv) {
         auto stop = high_resolution_clock::now();
         auto duration = duration_cast<microseconds>(stop - start);
         calculation_time = duration.count();
-        cout << "Time taken: " << calculation_time << " us" << endl;
+        cout << "Time taken: " << calculation_time/1000. << " ms" << endl;
 
         // Test if the text before and after encryption and decryption are the same
         test(finalText, fullText);
