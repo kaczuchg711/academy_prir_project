@@ -15,18 +15,18 @@ NUMBER_OF_THREADS="$3"
 echo "Running XOR - sequential approach:"
 g++ XOR_sequential.cpp -o XOR_sequential
 ./XOR_sequential "$TEXT_FILE"
-echo
+#echo
 # Compile and run the OpenMP version
-echo "Running XOR - OpenMP approach:"
-g++ -fopenmp XOR_omp.cpp -o XOR_omp
-./XOR_omp "$TEXT_FILE" "$NUMBER_OF_THREADS"
-echo
+#echo "Running XOR - OpenMP approach:"
+#g++ -fopenmp XOR_omp.cpp -o XOR_omp
+#time ./XOR_omp "$TEXT_FILE" "$NUMBER_OF_THREADS"
+#echo
 # Compile and run the MPI version
-echo "Running XOR - MPI approach:"
-mpic++ XOR_mpi.cpp -o XOR_mpi
-mpirun -np "$NUMBER_OF_PROCESS" ./XOR_mpi "$TEXT_FILE"
-echo
-# Compile and run the hybrid version
-echo "Running XOR - hybrid approach:"
-mpic++ -fopenmp XOR_hybrid.cpp -o XOR_hybrid
-mpirun -np "$NUMBER_OF_PROCESS" ./XOR_hybrid "$TEXT_FILE" "$NUMBER_OF_THREADS"
+#echo "Running XOR - MPI approach:"
+#mpic++ XOR_mpi.cpp -o XOR_mpi
+#mpirun -np "$NUMBER_OF_PROCESS" ./XOR_mpi "$TEXT_FILE"
+#echo
+## Compile and run the hybrid version
+#echo "Running XOR - hybrid approach:"
+#mpic++ -fopenmp XOR_hybrid.cpp -o XOR_hybrid
+#mpirun -np "$NUMBER_OF_PROCESS" ./XOR_hybrid "$TEXT_FILE" "$NUMBER_OF_THREADS"

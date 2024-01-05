@@ -95,7 +95,6 @@ void encryptionWithoutParallelizing(string& characterAsBits, string& fullText, s
 // Encryption using OpenMP (commented as this code base does not include OpenMP setup)
 void encryptionOpenMP(string &characterAsBits, string &fullText, string &key, string &fullKey,
                       string &ciphertext, string &fullCiphertext, vector<string> &fullTextAsArray) {
-    omp_set_num_threads(12);
     vector<pair<int, string>> orderedCiphertext(fullTextAsArray.size());
     vector<pair<int, string>> orderedKeys(fullTextAsArray.size());
 
@@ -159,7 +158,7 @@ int main() {
         exit(1);
     }
 
-    stringstream buffer;
+
     buffer << myReadFile.rdbuf();
     fullText = buffer.str();
     vector<string> fullTextAsArray = splitString(fullText);
@@ -167,8 +166,7 @@ int main() {
     long calculation_time;
 
     encryption_fun_type ptr = encryptionWithoutParallelizing;
-    runEncryption(ptr, characterAsBits, fullText, key, fullKey, ciphertext, fulltextAfterDecode, textAfterDecode, fullCiphertext, fullTextAsArray,calculation_time);
-
+//    runEncryption(ptr, characterAsBits, fullText, key, fullKey, ciphertext, fulltextAfterDecode, textAfterDecode, fullCiphertext, fullTextAsArray,calculation_time);
     long calculation_time_without_parallelizing = calculation_time;
 
     ptr = encryptionOpenMP;

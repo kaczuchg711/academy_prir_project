@@ -144,19 +144,20 @@ void runEncryption(encryption_fun_type fun, string& characterAsBits, string& ful
     cout << "Time taken: " << calculation_time/1000. << " ms" << endl;
 
     // Decryption process
-    for (size_t i = 0; i < fullCiphertext.length(); i += 8) {
-        textAfterDecode = decode(fullCiphertext.substr(i, 8), fullKey.substr(i, 8));
-        fulltextAfterDecode += bitsToChar(textAfterDecode);
-    }
-
-    test(fulltextAfterDecode, fullText);
-    fullKey.clear();
-    fulltextAfterDecode.clear();
-    fullCiphertext.clear();
+//    for (size_t i = 0; i < fullCiphertext.length(); i += 8) {
+//        textAfterDecode = decode(fullCiphertext.substr(i, 8), fullKey.substr(i, 8));
+//        fulltextAfterDecode += bitsToChar(textAfterDecode);
+//    }
+//
+//    test(fulltextAfterDecode, fullText);
+//    fullKey.clear();
+//    fulltextAfterDecode.clear();
+//    fullCiphertext.clear();
 }
 
 // Main function
 int main(int argc, char** argv) {
+
     string characterAsBits, fullText, key, fullKey, ciphertext, textAfterDecode, fulltextAfterDecode, fullCiphertext;
     encryption_fun_type ptr;
     long calculation_time;
@@ -170,5 +171,6 @@ int main(int argc, char** argv) {
 
     ptr = encryptionOpenMP;
     runEncryption(ptr, characterAsBits, fullText, key, fullKey, ciphertext, fulltextAfterDecode, textAfterDecode, fullCiphertext, fullTextAsArray, calculation_time);
+
     return 0;
 }

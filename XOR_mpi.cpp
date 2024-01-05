@@ -145,10 +145,10 @@ string runEncryption(encryption_fun_type fun, string& characterAsBits, string& k
     fun(characterAsBits, key, fullKey, ciphertext, fullCiphertext, fullTextAsArray);
 
     // Decryption process
-    for (size_t i = 0; i < fullCiphertext.length(); i += 8) {
-        textAfterDecode = decode(fullCiphertext.substr(i, 8), fullKey.substr(i, 8));
-        fulltextAfterDecode += bitsToChar(textAfterDecode);
-    }
+//    for (size_t i = 0; i < fullCiphertext.length(); i += 8) {
+//        textAfterDecode = decode(fullCiphertext.substr(i, 8), fullKey.substr(i, 8));
+//        fulltextAfterDecode += bitsToChar(textAfterDecode);
+//    }
 
     fullKey.clear();
     fullCiphertext.clear();
@@ -157,6 +157,8 @@ string runEncryption(encryption_fun_type fun, string& characterAsBits, string& k
 }
 
 int main(int argc, char** argv) {
+    auto start = high_resolution_clock::now();
+
     int rank, size;
     string characterAsBits, fullText, key, fullKey, ciphertext, textAfterDecode, fulltextAfterDecode, fullCiphertext, finalText;
     encryption_fun_type ptr;
@@ -202,6 +204,8 @@ int main(int argc, char** argv) {
         string textAfterOperation = runEncryption(ptr, characterAsBits, key, fullKey, ciphertext, fulltextAfterDecode, textAfterDecode, fullCiphertext, split_vec[0]);
 
         MPI_Send(textAfterOperation.c_str(), textAfterOperation.size() + 1, MPI_CHAR, size - 1, 1, MPI_COMM_WORLD);
+
+
     } else if (rank == size - 1) {
         // Receive the clock start value
         high_resolution_clock::time_point start;
@@ -234,13 +238,19 @@ int main(int argc, char** argv) {
         finalText = buffer + finalText;
 
         // Stop the clock and calculate the duration time
-        auto stop = high_resolution_clock::now();
-        auto duration = duration_cast<microseconds>(stop - start);
-        calculation_time = duration.count();
-        cout << "Time taken: " << calculation_time/1000. << " ms" << endl;
+//        auto stop = high_resolution_clock::now();
+//        auto duration = duration_cast<microseconds>(stop - start);
+//        calculation_time = duration.count();
+//        cout << "Time taken: " << calculation_time/1000. << " ms" << endl;
 
         // Test if the text before and after encryption and decryption are the same
-        test(finalText, fullText);
+//        test(finalText, fullText);
+
+
+        auto stop = high_resolution_clock::now();
+        auto duration = duration_cast<microseconds>(stop - start);
+        long calculation_time_main = duration.count();
+        cout << "main fun:" <<calculation_time_main/1000. << " ms" << endl;
     } else {
         // Receive the text data from the process 0
         char buffer[1000000];
@@ -256,6 +266,9 @@ int main(int argc, char** argv) {
         // Send the text data after operations to the last process
         MPI_Send(textAfterOperation.c_str(), textAfterOperation.size() + 1, MPI_CHAR, size - 1, 1, MPI_COMM_WORLD);
     }
+
+
+
 
     MPI_Finalize();
     return(0);

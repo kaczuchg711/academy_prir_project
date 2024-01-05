@@ -6,13 +6,12 @@
 #include <algorithm>
 #include <sstream>
 #include <vector>
-
+#include <iomanip>
 using namespace std;
 using namespace std::chrono;
 
 typedef void (*encryption_fun_type)(string&, string&, string&, string&,
                                     string&, string&, vector<string>&);
-
 // Split string by newline character
 vector<string> splitString(const string& str) {
     vector<string> tokens;
@@ -123,15 +122,15 @@ void runEncryption(encryption_fun_type fun, string& characterAsBits, string& ful
     auto stop = high_resolution_clock::now();
     auto duration = duration_cast<microseconds>(stop - start);
     calculation_time = duration.count();
-    cout << "Time taken: " << calculation_time/1000. << " ms" << endl;
+    cout << "Encryption time: " << std::setw(20)<< calculation_time/1000. << " ms" << endl;
 
     // Decryption process
-    for (size_t i = 0; i < fullCiphertext.length(); i += 8) {
-        textAfterDecode = decode(fullCiphertext.substr(i, 8), fullKey.substr(i, 8));
-        fulltextAfterDecode += bitsToChar(textAfterDecode);
-    }
-
-    test(fulltextAfterDecode, fullText);
+//    for (size_t i = 0; i < fullCiphertext.length(); i += 8) {
+//        textAfterDecode = decode(fullCiphertext.substr(i, 8), fullKey.substr(i, 8));
+//        fulltextAfterDecode += bitsToChar(textAfterDecode);
+//    }
+//
+//    test(fulltextAfterDecode, fullText);
     fullKey.clear();
     fulltextAfterDecode.clear();
     fullCiphertext.clear();
@@ -139,8 +138,10 @@ void runEncryption(encryption_fun_type fun, string& characterAsBits, string& ful
 
 // Main function
 int main(int argc, char** argv) {
+    auto start_main = high_resolution_clock::now();
     string characterAsBits, fullText, key, fullKey, ciphertext, textAfterDecode, fulltextAfterDecode, fullCiphertext;
     encryption_fun_type ptr;
+    long calculation_time_main;
     long calculation_time;
     srand(time(nullptr));
 
@@ -149,6 +150,21 @@ int main(int argc, char** argv) {
 
     ptr = encryptionWithoutParallelizing;
     runEncryption(ptr, characterAsBits, fullText, key, fullKey, ciphertext, fulltextAfterDecode, textAfterDecode, fullCiphertext, fullTextAsArray, calculation_time);
+    auto stop = high_resolution_clock::now();
+    auto stop_main = high_resolution_clock::now();
+
+    std::chrono::duration duration_main = duration_cast<microseconds>(stop_main - start_main);
+    calculation_time_main = duration_main.count();
+    cout << "main fun:" <<std::setw(28) <<calculation_time_main/1000. << " ms" << endl;
 
     return 0;
 }
+
+
+
+//auto start = high_resolution_clock::now();
+//fun(characterAsBits, fullText, key, fullKey, ciphertext, fullCiphertext, fullTextAsArray);
+//auto stop = high_resolution_clock::now();
+//auto duration = duration_cast<microseconds>(stop - start);
+//calculation_time = duration.count();
+//cout << "Encryption time taken: " << calculation_time/1000. << " ms" << endl;
