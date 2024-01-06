@@ -1,38 +1,34 @@
 #!/bin/bash
 
-# Check if a file name is provided as an argument
-if [ "$#" -ne 3 ]; then
-    echo "Usage: $0 <text_file_name> <number_of_process> <number_of_threads>"
-    exit 1
-fi
+# Funkcja do uruchamiania programu XOR_hybrid
+run_xor_hybrid() {
+    local file=$1
+    local processes=$2
+    local threads=$3
 
-# Assign the first argument to a variable
-TEXT_FILE="$1"
-NUMBER_OF_PROCESS="$2"
-NUMBER_OF_THREADS="$3"
+    # Kompilacja programu XOR_hybrid (dostosuj ścieżkę lub polecenie kompilacji według potrzeb)
+    mpic++ -fopenmp XOR_hybrid.cpp -o XOR_hybrid
 
-# Set the TIMEFORMAT to only display real time
-TIMEFORMAT='Execution time (real): %R s'
+    # Uruchomienie programu i pomiar czasu
+    echo -n "File: $file, Processes: $processes, Threads: $threads, Time (ms): "
+    TIMEFORMAT=%R
+    time (mpirun -np "$processes" ./XOR_hybrid "$file" "$threads") 2>&1
+}
 
-#Compile and run the sequential version
-echo "Running XOR - sequential approach:"
-g++ XOR_sequential.cpp -o XOR_sequential
-time ./XOR_sequential "$TEXT_FILE"
-echo
-# Compile and run the OpenMP version
-echo "Running XOR - OpenMP approach:"
-g++ -fopenmp XOR_omp.cpp -o XOR_omp
-time ./XOR_omp "$TEXT_FILE" "$NUMBER_OF_THREADS"
-echo
-# Compile and run the MPI version
-echo "Running XOR - MPI approach:"
-mpic++ XOR_mpi.cpp -o XOR_mpi
-time mpirun -np "$NUMBER_OF_PROCESS" ./XOR_mpi "$TEXT_FILE"
-echo
-# Compile and run the hybrid version
-echo "Running XOR - hybrid approach:"
-mpic++ -fopenmp XOR_hybrid.cpp -o XOR_hybrid
-time mpirun -np "$NUMBER_OF_PROCESS" ./XOR_hybrid "$TEXT_FILE" "$NUMBER_OF_THREADS"
+# Tablica zawierająca różne rozmiary plików
+FILES=("1_4_bible.txt" "1_2_bible.txt" "3_4_bible.txt" "bible.txt")
 
-# Remove the compiled files
-rm XOR_sequential XOR_omp XOR_mpi XOR_hybrid
+# Zakres liczby procesów i wątków
+PROCESSES=(2 3 4 5 6 7 8)
+THREADS=(1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16)
+
+# Pętla dla każdego pliku
+for file in "${FILES[@]}"; do
+    # Pętla dla każdej liczby procesów
+    for proc in "${PROCESSES[@]}"; do
+        # Pętla dla każdej liczby wątków
+        for thread in "${THREADS[@]}"; do
+            run_xor_hybrid "$file" "$proc" "$thread"
+        done
+    done
+done
