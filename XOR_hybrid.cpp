@@ -234,39 +234,39 @@ int main(int argc, char** argv) {
 
         // Receive the text data from the other processes
         for (int i = 1; i < size - 1; i++) {
-            char buffer[1000000];
-            MPI_Recv(&buffer, 1000000, MPI_CHAR, i, 1, MPI_COMM_WORLD, &status);
+            char buffer[5000000];
+            MPI_Recv(&buffer, 5000000, MPI_CHAR, i, 1, MPI_COMM_WORLD, &status);
 
             finalText += buffer;
         }
 
         // Receive the not encrypted text data from the process 0 and do the encryption
-        char buffer[1000000];
-        MPI_Recv(&buffer, 1000000, MPI_CHAR, 0, 0, MPI_COMM_WORLD, &status);
+        char buffer[5000000];
+        MPI_Recv(&buffer, 5000000, MPI_CHAR, 0, 0, MPI_COMM_WORLD, &status);
 
         string receivedString(buffer);
         vector<string> receivedVector = splitString(receivedString);
 
         ptr = encryptionOpenMP;
         string textAfterOperation = runEncryption(ptr, characterAsBits, key, fullKey, ciphertext, fulltextAfterDecode, textAfterDecode, fullCiphertext, receivedVector);
-        // finalText += textAfterOperation;
+        finalText += textAfterOperation;
 
         // Receive text data after encryption from the process 0
-        MPI_Recv(&buffer, 1000000, MPI_CHAR, 0, 1, MPI_COMM_WORLD, &status);
-        // finalText = buffer + finalText;
+        MPI_Recv(&buffer, 5000000, MPI_CHAR, 0, 1, MPI_COMM_WORLD, &status);
+        finalText = buffer + finalText;
+
+        // Test if the text before and after encryption and decryption are the same
+        // test(finalText, fullText);
 
         // Stop the clock and calculate the duration time
         auto stop = high_resolution_clock::now();
         auto duration = duration_cast<microseconds>(stop - start);
         calculation_time = duration.count();
         // cout << "Time taken: " << calculation_time/1000. << " ms" << endl;
-
-        // Test if the text before and after encryption and decryption are the same
-        // test(finalText, fullText);
     } else {
         // Receive the text data from the process 0
-        char buffer[1000000];
-        MPI_Recv(&buffer, 1000000, MPI_CHAR, 0, 0, MPI_COMM_WORLD, &status);
+        char buffer[5000000];
+        MPI_Recv(&buffer, 5000000, MPI_CHAR, 0, 0, MPI_COMM_WORLD, &status);
 
         // Perform encryption and decryption
         string receivedString(buffer);

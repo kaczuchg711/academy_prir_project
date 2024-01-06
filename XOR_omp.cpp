@@ -134,14 +134,9 @@ void encryptionOpenMP(string &characterAsBits, string &fullText, string &key, st
 void runEncryption(encryption_fun_type fun, string& characterAsBits, string& fullText, string& key, string& fullKey,
                    string& ciphertext, string& fulltextAfterDecode, string& textAfterDecode, string& fullCiphertext,
                    vector<string>& fullTextAsArray, long& calculation_time) {
-    auto start = high_resolution_clock::now();
+    
 
     fun(characterAsBits, fullText, key, fullKey, ciphertext, fullCiphertext, fullTextAsArray);
-
-    auto stop = high_resolution_clock::now();
-    auto duration = duration_cast<microseconds>(stop - start);
-    calculation_time = duration.count();
-    // cout << "Time taken: " << calculation_time/1000. << " ms" << endl;
 
     // Decryption process
     // for (size_t i = 0; i < fullCiphertext.length(); i += 8) {
@@ -162,6 +157,8 @@ int main(int argc, char** argv) {
     long calculation_time;
     srand(time(nullptr));
 
+    auto start = high_resolution_clock::now();
+
     fullText = readTextFile(argv[1]);
     vector<string> fullTextAsArray = readFileAndSplitIntoLines(argv[1]);
 
@@ -170,5 +167,11 @@ int main(int argc, char** argv) {
 
     ptr = encryptionOpenMP;
     runEncryption(ptr, characterAsBits, fullText, key, fullKey, ciphertext, fulltextAfterDecode, textAfterDecode, fullCiphertext, fullTextAsArray, calculation_time);
+
+    auto stop = high_resolution_clock::now();
+    auto duration = duration_cast<microseconds>(stop - start);
+    calculation_time = duration.count();
+    // cout << "Time taken: " << calculation_time/1000. << " ms" << endl;
+
     return 0;
 }
