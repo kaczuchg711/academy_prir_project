@@ -30,3 +30,6 @@ echo
 echo "Running XOR - hybrid approach:"
 mpic++ -fopenmp XOR_hybrid.cpp -o XOR_hybrid
 mpirun -np "$NUMBER_OF_PROCESS" ./XOR_hybrid "$TEXT_FILE" "$NUMBER_OF_THREADS"
+
+# Remove the compiled files
+rm XOR_sequential XOR_omp XOR_mpi XOR_hybrid
